@@ -58,11 +58,8 @@ export function NodeRunner(distEntryPath: string, options: RunnerOptions = {}): 
             console.clear()
           }
           this.warn(`File changed: ${path.relative(cwd(), filePath)}`)
-          const isSuccess = killChildProcess()
-          setTimeout(() => {
-            if (isSuccess)
-              createChildProcess()
-          }, 1000)
+          killChildProcess()
+          createChildProcess()
         })
       },
       order: 'post',
