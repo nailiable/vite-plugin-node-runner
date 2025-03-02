@@ -28,7 +28,7 @@ export function NodeRunner(distEntryPath: string, options: RunnerOptions = {}): 
 
   function killChildProcess(): boolean {
     if (child_process_instance) {
-      child_process_instance.kill('SIGKILL')
+      child_process_instance.kill()
       child_process_instance = null
       return true
     }
@@ -42,7 +42,7 @@ export function NodeRunner(distEntryPath: string, options: RunnerOptions = {}): 
     apply: 'build',
 
     config(config) {
-      isClearScreen = config.clearScreen ?? true
+      isClearScreen = typeof config.clearScreen === 'boolean' ? config.clearScreen : true
     },
 
     writeBundle: {
