@@ -1,71 +1,49 @@
-import type { ChildProcess } from 'node:child_process'
-import * as child_progress from 'node:child_process'
-import { cwd, env, stderr, stdout } from 'node:process'
-import path from 'node:path'
+import * as child_process from 'node:child_process'
 import type { Plugin } from 'vite'
-import { watch } from 'chokidar'
-import type { RunnerOptions } from './types'
 
-let ruined = false
-export function NodeRunner(distEntryPath: string, options: RunnerOptions = {}): Plugin {
-  // let isClearScreen = true
-  let child_process_instance: ChildProcess
+export interface NodeRunnerOptions extends child_process.ForkOptions {
+  entry: string // 指定要执行的 Express 启动脚本文件路径
+}
 
-  function createChildProcess() {
-    child_process_instance = child_progress.fork(distEntryPath, {
-      cwd: cwd(),
-      env: {
-        ...env,
-        ...(options.env || {}),
-      },
-      stdio: 'pipe',
-      ...(options.extraForkOptions || {}),
-    })
-
-    child_process_instance.stdout.pipe(stdout)
-    child_process_instance.stderr.pipe(stderr)
-  }
-
-  function killChildProcess(): boolean {
-    if (child_process_instance) {
-      child_process_instance.kill()
-      child_process_instance = null
-      return true
-    }
-    return false
-  }
-
-  let isClearScreen = true
+export function NodeRunner(options: NodeRunnerOptions): Plugin {
+  let childProcessInstance: child_process.ChildProcess | null = null
+  let clearScreen = true
 
   return {
-    name: 'loader',
+    name: 'node-runner',
     apply: 'build',
 
-    config(config) {
-      isClearScreen = typeof config.clearScreen === 'boolean' ? config.clearScreen : true
+    configResolved(config) {
+      clearScreen = typeof config.clearScreen === 'boolean' ? config.clearScreen : true
     },
 
-    writeBundle: {
+    // 每次构建后执行指定的 entry 文件
+    closeBundle: {
       handler() {
-        if (ruined || !this.meta.watchMode)
+        // 只在 watch 模式下执行
+        if (!this.meta.watchMode)
           return
+        if (clearScreen)
+          console.clear()
 
-        createChildProcess()
-        ruined = true
-        watch(this.getWatchFiles()).on('change', (filePath) => {
-          if (isClearScreen) {
-            stdout.write('\n')
-            console.clear()
-          }
-          this.warn(`File changed: ${path.relative(cwd(), filePath)}`)
-          killChildProcess()
-          createChildProcess()
+        this.warn(`Vite build finished, executing ${options.entry}...`)
+
+        // 如果已有子进程在运行，先终止它
+        if (childProcessInstance) {
+          this.warn(`Killing the previous child process...`)
+          childProcessInstance.kill()
+        }
+
+        // 启动新的子进程
+        childProcessInstance = child_process.fork(options.entry, {
+          ...options,
+          stdio: 'inherit', // 将子进程的 stdio 重定向到父进程
         })
+
+        childProcessInstance.on('exit', () => this.warn(`${options.entry} exited. restarting...`))
       },
       order: 'post',
       sequential: true,
     },
   }
 }
-
-export default NodeRunner
