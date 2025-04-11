@@ -8,6 +8,19 @@ export interface NodeRunnerOptions extends child_process.ForkOptions {
   forceEnable?: boolean // 强制启用
 }
 
+function isWatchMode(options: NodeRunnerOptions, watchMode: boolean): boolean {
+  if (options.forceEnable)
+    return true
+  if (options.argvDetect) {
+    if (!process.argv.includes('-w') && !process.argv.includes('--watch'))
+      return false
+    else return true
+  }
+  if (watchMode)
+    return true
+  return false
+}
+
 export function NodeRunner(options: NodeRunnerOptions): Plugin {
   let childProcessInstance: child_process.ChildProcess | null = null
   let clearScreen = true
@@ -24,12 +37,9 @@ export function NodeRunner(options: NodeRunnerOptions): Plugin {
     closeBundle: {
       handler() {
         // 只在 watch 模式下执行
-        if (!this.meta.watchMode) {
-          if (options.argvDetect && (!process.argv.includes('-w') || !process.argv.includes('--watch')))
-            return
-          else if (!options.forceEnable)
-            return
-        }
+        if (!isWatchMode(options, this.meta.watchMode))
+          return
+
         if (clearScreen)
           console.clear()
 
