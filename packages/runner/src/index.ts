@@ -4,8 +4,8 @@ import type { Plugin } from 'vite'
 
 export interface NodeRunnerOptions extends child_process.ForkOptions {
   entry: string // 指定要执行的 Express 启动脚本文件路径
-  argvDetect: boolean // 是否使用命令行参数
-  forceEnable: boolean // 强制启用
+  argvDetect?: boolean // 是否使用命令行参数
+  forceEnable?: boolean // 强制启用
 }
 
 export function NodeRunner(options: NodeRunnerOptions): Plugin {
