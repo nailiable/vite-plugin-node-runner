@@ -6,6 +6,7 @@ export interface NodeRunnerOptions extends child_process.ForkOptions {
   entry: string // 指定要执行的 Express 启动脚本文件路径
   argvDetect?: boolean // 是否使用命令行参数
   forceEnable?: boolean // 强制启用
+  sourceMap?: true // 是否启用 source map support
 }
 
 function isWatchMode(options: NodeRunnerOptions, watchMode: boolean): boolean {
@@ -24,6 +25,9 @@ function isWatchMode(options: NodeRunnerOptions, watchMode: boolean): boolean {
 export function NodeRunner(options: NodeRunnerOptions): Plugin {
   let childProcessInstance: child_process.ChildProcess | null = null
   let clearScreen = true
+
+  if (options.sourceMap)
+    options.execArgv = [...(options.execArgv || []), '-r', 'source-map-support/register']
 
   return {
     name: 'node-runner',
