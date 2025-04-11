@@ -1,8 +1,11 @@
 import * as child_process from 'node:child_process'
+import process from 'node:process'
 import type { Plugin } from 'vite'
 
 export interface NodeRunnerOptions extends child_process.ForkOptions {
   entry: string // 指定要执行的 Express 启动脚本文件路径
+  argvDetect: boolean // 是否使用命令行参数
+  forceEnable: boolean // 强制启用
 }
 
 export function NodeRunner(options: NodeRunnerOptions): Plugin {
@@ -21,8 +24,12 @@ export function NodeRunner(options: NodeRunnerOptions): Plugin {
     closeBundle: {
       handler() {
         // 只在 watch 模式下执行
-        if (!this.meta.watchMode)
-          return
+        if (!this.meta.watchMode) {
+          if (options.argvDetect && (!process.argv.includes('-w') || !process.argv.includes('--watch')))
+            return
+          else if (!options.forceEnable)
+            return
+        }
         if (clearScreen)
           console.clear()
 
